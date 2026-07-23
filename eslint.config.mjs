@@ -4,6 +4,9 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
+    ignores: ["dist/"],
+  },
+  {
     languageOptions: {
       globals: globals.node,
     },
