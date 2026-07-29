@@ -4,7 +4,7 @@ import { ProductPricingCache } from "../types";
 const priceSchema = new mongoose.Schema({
   priceType: {
     type: String,
-    enum: ["base", "aditional"],
+    enum: ["base", "additional"],
   },
   availableOptions: {
     type: Object,
