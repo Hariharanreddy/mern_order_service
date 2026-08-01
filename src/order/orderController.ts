@@ -28,7 +28,7 @@ export class OrderController {
   constructor(
     private paymentGw: PaymentGW,
     private broker: MessageBroker,
-  ) {}
+  ) { }
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     const {
@@ -73,43 +73,63 @@ export class OrderController {
     let newOrder = idempotency ? [idempotency.response] : [];
 
     if (!idempotency) {
-      const session = await mongoose.startSession();
-      await session.startTransaction();
+      const createOrderAndIdempotency = async (useSession: boolean) => {
+        const session = useSession ? await mongoose.startSession() : null;
+        if (session) {
+          session.startTransaction();
+        }
+        try {
+          const options = session ? { session } : {};
+          newOrder = await orderModel.create(
+            [
+              {
+                cart,
+                address,
+                comment,
+                customerId,
+                deliveryCharges: DELIVERY_CHARGES,
+                discount: discountAmount,
+                taxes,
+                tenantId,
+                total: finalTotal,
+                paymentMode,
+                orderStatus: OrderStatus.RECEIVED,
+                paymentStatus: PaymentStatus.PENDING,
+              },
+            ],
+            options,
+          );
+
+          await idempotencyModel.create(
+            [{ key: idempotencyKey, response: newOrder[0] }],
+            options,
+          );
+
+          if (session) {
+            await session.commitTransaction();
+          }
+        } catch (err) {
+          if (session) {
+            await session.abortTransaction();
+            await session.endSession();
+          }
+          throw err;
+        } finally {
+          if (session) {
+            await session.endSession();
+          }
+        }
+      };
 
       try {
-        newOrder = await orderModel.create(
-          [
-            {
-              cart,
-              address,
-              comment,
-              customerId,
-              deliveryCharges: DELIVERY_CHARGES,
-              discount: discountAmount,
-              taxes,
-              tenantId,
-              total: finalTotal,
-              paymentMode,
-              orderStatus: OrderStatus.RECEIVED,
-              paymentStatus: PaymentStatus.PENDING,
-            },
-          ],
-          { session },
-        );
-
-        await idempotencyModel.create(
-          [{ key: idempotencyKey, response: newOrder[0] }],
-          { session },
-        );
-
-        await session.commitTransaction();
-      } catch (err) {
-        await session.abortTransaction();
-        await session.endSession();
-
-        return next(createHttpError(500, err.message));
-      } finally {
-        await session.endSession();
+        await createOrderAndIdempotency(true);
+      } catch (err: any) {
+        if (err.message.includes("Transaction numbers are only allowed")) {
+          // Fallback: retry without transaction for standalone MongoDB instances
+          await createOrderAndIdempotency(false);
+        } else {
+          return next(createHttpError(500, err.message));
+        }
       }
     }
 

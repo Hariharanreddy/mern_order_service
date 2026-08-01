@@ -9,7 +9,7 @@ export class PaymentController {
   constructor(
     private paymentGw: PaymentGW,
     private broker: MessageBroker,
-  ) {}
+  ) { }
   handleWebhook = async (req: Request, res: Response) => {
     const webhookBody = req.body;
 
@@ -34,7 +34,6 @@ export class PaymentController {
       const customer = await customerModel.findOne({
         _id: updatedOrder.customerId,
       });
-      // todo: Think about broker message fail.
       console.log("updated order", updatedOrder.toObject(), {
         ...updatedOrder.toObject(),
       });
@@ -45,12 +44,17 @@ export class PaymentController {
           customerId: customer,
         },
       };
-
-      await this.broker.sendMessage(
-        "order",
-        JSON.stringify(brokerMessage),
-        updatedOrder._id.toString(),
-      );
+      try {
+        await this.broker.sendMessage(
+          "order",
+          JSON.stringify(brokerMessage),
+          updatedOrder._id.toString(),
+        );
+      } catch (err: any) {
+        //The stripe will receive 500 error and do the retry itself for 3 days
+        console.error("Broker message publishing failed:", err);
+        throw new Error(`Broker message publishing failed: ${err.message}`);
+      }
     }
 
     return res.json({ success: true });

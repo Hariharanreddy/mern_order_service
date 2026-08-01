@@ -18,32 +18,32 @@ export class StripeGW implements PaymentGW {
     const session = await this.stripe.checkout.sessions.create(
       {
         // todo: get customer email from database
-        // customer_email: options.email
+        customer_email: "customer1@gmail.com",
         metadata: {
           orderId: options.orderId,
           restaurantId: options.tenantId,
         },
         billing_address_collection: "required",
         // todo: In Future, Capture structured address from customer
-        // payment_intent_data: {
-        //     shipping: {
-        //         name: "Rakesh K",
-        //         address: {
-        //             line1: "some line",
-        //             city: "Mumbai",
-        //             country: "India",
-        //             postal_code: "898798"
-        //         }
-        //     }
-        // },
+        payment_intent_data: {
+          shipping: {
+            name: "Customer 1",
+            address: {
+              line1: "some line",
+              city: "Mumbai",
+              country: "India",
+              postal_code: "898798"
+            }
+          }
+        },
         line_items: [
           {
             price_data: {
               unit_amount: options.amount * 100,
               product_data: {
-                name: "Online Pizza order",
+                name: "Gift commerce order",
                 description: "Total amount to be paid",
-                images: ["https://placehold.jp/150x150.png"],
+                images: [`${config.get("frontend.clientUI")}/logo.svg`],
               },
               currency: options.currency || "inr",
             },

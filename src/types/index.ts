@@ -15,7 +15,7 @@ export interface AuthRequest extends Request {
 }
 
 export interface PriceConfiguration {
-  priceType: "base" | "aditional";
+  priceType: "base" | "additional";
   availableOptions: {
     [key: string]: number;
   };
@@ -62,7 +62,7 @@ export interface ToppingMessage {
 
 export interface ProductPriceConfiguration {
   [key: string]: {
-    priceType: "base" | "aditional";
+    priceType: "base" | "additional";
     availableOptions: {
       [key: string]: number;
     };
