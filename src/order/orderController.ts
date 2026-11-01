@@ -161,7 +161,7 @@ export class OrderController {
         newOrder[0]._id.toString(),
       );
 
-      return res.json({ paymentUrl: session.paymentUrl });
+      return res.json({ paymentUrl: session.paymentUrl, orderId: newOrder[0]._id.toString() });
     }
 
     await this.broker.sendMessage(
@@ -171,7 +171,7 @@ export class OrderController {
     );
 
     // todo: Update order document -> paymentId -> sessionId
-    return res.json({ paymentUrl: null });
+    return res.json({ paymentUrl: null, orderId: newOrder[0]._id.toString() });
   };
 
   getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
